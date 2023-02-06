@@ -1,0 +1,114 @@
+---
+title: "cind110_Assignment_03"
+author: "Ann Sam-Erb"
+Due: "April 12, 2021"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+Use RStudio for this assignment. 
+Edit the file `A3_F19_Q.Rmd` and insert your R code where wherever you see the string "#WRITE YOUR ANSWER HERE"
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+This assignment makes use of data that were adapted from:
+https://www.ted.com/talks
+
+
+#Install and load required packages (please install if required)
+```{r}
+#install.packages("tm")       
+#install.packages("text2vec") 
+#install.packages("NLP")
+#install.packages("SnowballC")
+#install.packages("slam")
+#install.packages("textstem")
+#install.packages("wordcloud")
+#install.packages("Matrix")
+library(tm)
+library(SnowballC)
+library(NLP)
+library(slam)
+library(text2vec)
+library(textstem)
+library(wordcloud)
+library(Matrix)
+```
+
+
+## Reading the Transcripts
+```{r}
+data <- read.csv(file = 'Section_A-IR_Data.csv', header = F, sep = '|')
+doc <- 0
+for (i in c(2:100)) {doc[i] <- as.character(data$V1[i])}
+doc.list <- as.list(doc[2:100])
+N.docs <- length(doc.list)
+names(doc.list) <- paste0("Doc", c(1:N.docs))
+Query <- as.character(data$V1[1])
+```
+
+## Preparing the Corpus
+```{r}
+my.docs <- VectorSource(c(doc.list, Query))
+my.docs$Names <- c(names(doc.list), "Query")
+my.corpus <- Corpus(my.docs)
+my.corpus
+```
+
+
+## Question 1: Cleaning and Preprocessing the text (Cleansing Techniques)
+```{r}
+#Replacing number with words
+for(i in 1:100){
+my.corpus[[i]]$content <-
+as.character(textclean::replace_number(my.corpus[[i]]$content))}
+
+#Utilizing a Thesaurus
+for(i in 1:100){
+my.corpus[[i]]$content <-
+textstem::lemmatize_strings(my.corpus[[i]]$content,
+dictionary = lexicon::hash_lemmas)}
+
+#Stemming
+my.corpus<- tm::tm_map(my.corpus, stemDocument)
+
+#Stopword Removal
+my.corpus<- tm::tm_map(my.corpus, removeWords, stopwords('english'))
+my.corpus <- tm::tm_map(my.corpus, removeWords, stopwords('SMART'))
+
+#Other Pre-processing Steps: Punctuation Marks, Extra Whitespaces, etc.
+my.corpus <- tm::tm_map(my.corpus, content_transformer(tolower))
+my.corpus <- tm::tm_map(my.corpus, removePunctuation, ucp = TRUE,
+preserve_intra_word_contractions = FALSE,
+preserve_intra_word_dashes = FALSE)
+my.corpus <- tm::tm_map(my.corpus, stripWhitespace)
+```
+
+##Question2: Creating a uni-gram Term Document Matrix (TDM)
+```{r}
+# Create a uni-gram Term Document Matrix
+term.doc.matrix.1g <-
+tm::TermDocumentMatrix(my.corpus)
+tm::inspect(term.doc.matrix.1g[1:10,1:10])
+```
+
+## Question 3: Converting the generated TDM into a matrix and displaying the first 6 rows and the dimensions of the matrix
+```{r}
+# Represent TDM in a matrix format and display its dimensions
+term.doc.matrix.unigram <- as.matrix(term.doc.matrix.1g)
+dim(term.doc.matrix.unigram)
+head(term.doc.matrix.unigram)
+```
+
+
